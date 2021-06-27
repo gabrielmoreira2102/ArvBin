@@ -1,113 +1,145 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct no{
-	int valor;
-	int conteudo;
-	int chave;
-	struct no *direita;
-	struct no *esquerda;
-}NoArv;
+typedef int TIPOCHAVE;
 
-NoArv* inserir(NoArv *raiz, int num){
-	if (raiz == NULL){
-		NoArv *aux = malloc(sizeof(NoArv));
-		aux->valor = num;
-		aux->esquerda = NULL;
-		aux->direita = NULL;
-		return aux;		
-	}
-	else{
-		if(num < raiz->valor)
-			raiz->esquerda = inserir(raiz->esquerda, num);
-		else
-			raiz->direita = inserir(raiz->direita, num);
-		return raiz;
-	}
+typedef struct aux{
+	TIPOCHAVE chave;
+	struct aux *esq;
+	struct aux *dir;
+}NO;
+
+typedef NO* PONT;
+
+PONT inicializa(){
+	return (NULL);
 }
 
-NoArv* remover(NoArv *raiz, int chave){
+PONT insere(PONT raiz, int ch){
 	if(raiz == NULL){
-		printf("Valor nao encontrado!\n");
-		return NULL;
+		PONT novoNo = (PONT)malloc(sizeof(NO));
+		novoNo->esq = NULL;
+		novoNo->dir = NULL;
+		novoNo->chave = ch;
+		return(novoNo);
 	}
 	else{
-		if(raiz->conteudo == chave){
-			//remove nós folhas (nós sem filhos)
-			if(raiz->esquerda == NULL && raiz->direita == NULL){
-				free(raiz);
-				return NULL;
-			}
-			else{
-				//remove nós que possuem apenas 1 filho
-				if(raiz->esquerda == NULL || raiz->direita == NULL){
-					NoArv *aux;
-					if(raiz->esquerda != NULL)
-						aux = raiz->esquerda;
-					else
-						aux = raiz->direita;
-					free(raiz);
-					return aux;
-				}
-				else{
-					//remove nós que possuem 2 filhos
-					NoArv *aux = raiz->esquerda;
-					while(aux->direita != NULL)
-						aux = aux->direita;
-					raiz->conteudo = aux->conteudo;
-					aux->conteudo = chave;
-					raiz->esquerda = remover(raiz->esquerda, chave);
-					return raiz;
-				}
-			}
-		
-		}
-		else{
-			if(chave < raiz->conteudo)
-				raiz->esquerda = remover(raiz->esquerda, chave);
-			else
-				raiz->direita = remover(raiz->direita, chave);
-			return raiz;
-		}
+		if(ch < raiz->chave)
+			raiz->esq = insere(raiz->esq, ch);
+		else
+			raiz->dir = insere(raiz->dir, ch);
+		return(raiz);
 	}
 }
 
-void imprimir(NoArv *raiz){
-	if(raiz){
-		printf("\n\t\t%d", raiz->valor);
-		imprimir(raiz->esquerda);
-		imprimir(raiz->direita);
+PONT busca(TIPOCHAVE ch, PONT raiz){
+	if(raiz == NULL)
+		return(NULL);
+	if(raiz->chave == ch)
+		return(raiz);
+	else
+		if(raiz->chave > ch)
+			return(busca(ch, raiz->esq));
+		else 
+			return(busca(ch, raiz->dir));
+	}
+
+PONT buscaNo(PONT raiz, TIPOCHAVE ch, PONT *pai){
+	PONT atual = raiz;
+	*pai = NULL;
+	while(atual){
+		if(atual->chave == ch)
+			return(atual);
+		*pai = atual;
+		if(ch < atual->chave) 
+			atual = atual->esq;
+		else
+			atual = atual->dir;
+	}
+	return(NULL);
+}
+
+PONT removeNo(PONT raiz, TIPOCHAVE ch){
+	PONT pai, no, p, q;
+	no = buscaNo(raiz, ch, &pai);
+	if(no == NULL){
+		return(raiz);
+	if(!no->esq || !no->dir){
+		if(!no->esq)
+			q = no->dir;
+		else
+			q = no->esq;
+		}
+	}
+	else{
+		p = no;
+		q = no->esq;
+		while(q->dir){
+			p = q;
+			q = q->dir;
+		}
+		if(p != no){
+			p->dir = q->esq;
+			q->esq = no->esq;
+		}
+		q->dir = no->dir;
+	}
+	if(!pai){
+		free(no);
+		return(q);
+	}
+	if(ch < pai->chave)
+		pai->esq = q;
+	else
+		pai->dir = q;
+	free(no);
+	return(raiz);
+}
+
+void imprime(PONT raiz){
+	if(raiz != NULL){
+		printf("%d", raiz->chave);
+		printf("(");
+	 	imprime(raiz->esq);
+		imprime(raiz->dir);
+		printf(")");
 	}
 }
-	
+
 int main(){
 	
-	NoArv * raiz = NULL;
+	PONT raiz = NULL;
 	int opcao, valor;
 	
 	do{
 		printf("\n\t***** MENU *****");
 		printf("\n\t1 - Inserir valores");
 		printf("\n\t2 - Remover valores");
-		printf("\n\t3 - Imprimir valores");
+		printf("\n\t3 - Busca valores");
+		printf("\n\t4 - Imprimir valores");
 		printf("\n\t0 - Sair");
 		printf("\nDigite uma opcao: ");
 		scanf("%d", &opcao);
 		
 		switch(opcao){
 		case 1:
-			printf("\n\tDigite um valor: ");
+			printf("\n\tDigite um valor a ser inserido: ");
 			scanf("%d", &valor);
-			raiz = inserir(raiz, valor);
+			raiz = insere(raiz, valor);
 			break;
 		case 2:
 			printf("\n\tDigite um valor a ser removido: ");
 			scanf("%d", &valor);
-			raiz = remover(raiz, valor);
+			raiz = removeNo(raiz, valor);
 			break;
 		case 3:
-			printf("\n\tImprimir: \n");
-			imprimir(raiz);
+			printf("\n\tQual valor você deseja buscar? ");
+			scanf("%d", &valor);
+			printf("\n\tValor encontrado: %d\n", valor);
+			break;
+		case 4:
+			printf("\n\tImpressao da arvore binaria: \n");
+			imprime(raiz);
 			printf("\n");			
 			break;
 		case 0:
@@ -119,7 +151,5 @@ int main(){
 		}
 	}
 	while(opcao != 0);
-	
 	return 0;
-		
 }
